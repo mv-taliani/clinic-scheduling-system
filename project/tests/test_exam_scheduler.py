@@ -4,28 +4,40 @@ from uuid import uuid4
 
 from project.exam_scheduler import ExamSchedulerClass
 from project.exam_type_enum import ExamTypeEnum
-from project.clinic import Clinic, Weekday
+from project.clinic import Clinic
 from project.employee import Employee
+from project.weekday_enum import Weekday
 
 class TestExamScheduler(unittest.TestCase):
 
     def setUp(self):
         self.scheduler = ExamSchedulerClass()
 
+        self.employee_id_1 = uuid4()
+        self.employee_id_2 = uuid4()
+        self.employee_1 = Employee(
+            employee_id=self.employee_id_1,
+            name="John Doe",
+            working_days=[Weekday.MONDAY, Weekday.TUESDAY, Weekday.WEDNESDAY, Weekday.THURSDAY, Weekday.FRIDAY],  # Monday to Friday
+            opening_time=time(8, 0),
+            closing_time=time(17, 0),
+            exam_types=[ExamTypeEnum.GENERAL_CHECKUP]
+        )
+        self.employee_2 = Employee(
+            employee_id=self.employee_id_2,
+            name="Jane Smith",
+            working_days=[Weekday.MONDAY, Weekday.TUESDAY, Weekday.WEDNESDAY, Weekday.THURSDAY, Weekday.FRIDAY, Weekday.SATURDAY],  # Monday to Saturday
+            opening_time=time(9, 0),
+            closing_time=time(18, 0),
+            exam_types=[ExamTypeEnum.GENERAL_CHECKUP, ExamTypeEnum.DENTAL_EXAM]
+        )
+
         self.clinic_id = uuid4()
         self.clinic = Clinic(
             clinic_id=self.clinic_id,
             name="Healthy Life Clinic",
-            operating_days=[Weekday.MONDAY, Weekday.TUESDAY, Weekday.WEDNESDAY, Weekday.THURSDAY, Weekday.FRIDAY],
-            opening_time=time(8, 0),
-            closing_time=time(17, 0),
-            offered_exam_types=[ExamTypeEnum.GENERAL_CHECKUP, ExamTypeEnum.DENTAL_EXAM]
+            employees=[self.employee_1, self.employee_2]
         )
-
-        self.employee_id_1 = uuid4()
-        self.employee_id_2 = uuid4()
-        self.employee_1 = Employee(employee_id=self.employee_id_1, name="John Doe")
-        self.employee_2 = Employee(employee_id=self.employee_id_2, name="Jane Smith")
 
     def test_successful_scheduling(self):
         result, message = self.scheduler.execute(self.employee_id_1, self.clinic, ExamTypeEnum.GENERAL_CHECKUP, datetime(2023, 10, 13, 14, 0))
@@ -47,7 +59,8 @@ class TestExamScheduler(unittest.TestCase):
 
     def test_invalid_exam_type_for_clinic(self):
         result, message = self.scheduler.execute(self.employee_id_1, self.clinic, ExamTypeEnum.DENTAL_EXAM, datetime(2023, 10, 13, 14, 0))
-        self.assertTrue(result)
+        self.assertFalse(result)
+        self.assertEqual(message, "The employee cannot perform the required exam type.")
 
     def test_multiple_employees_scheduling(self):
         # Schedule an appointment for the first employee
